@@ -1,0 +1,11 @@
+{
+  "access_token": "",
+  "refresh_token": "",
+  "user": {
+    "id": "",
+    "email": "",
+    "userName": "",
+    "firstName": "",
+    "lastName": ""
+  }
+}

@@ -1,0 +1,14 @@
+# Accounting ERP – Python dependencies
+# Install with: pip install -r requirements.txt
+
+# PostgreSQL driver (cloud sync)
+psycopg2-binary==2.9.11
+
+# All other dependencies are Python standard library:
+#   tkinter    – GUI (bundled with CPython installers; on Linux: sudo apt install python3-tk)
+#   sqlite3    – local database
+#   asyncio    – async event loop
+#   urllib     – HTTP requests (login API)
+#   json       – serialisation
+#   threading  – background thread management
+#   dataclasses, os, re, uuid, datetime, concurrent.futures
