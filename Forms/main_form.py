@@ -9,6 +9,7 @@ from Services.auth_service import AuthService
 from Services.async_runner import AsyncRunner
 from Services.pull_service import PullService
 from Database.db_manager import DatabaseManager
+from Database.sync_service import SyncService
 from Forms.error_dialog import show_error
 from Forms.company.company_list import CompanyListForm
 
@@ -98,6 +99,15 @@ class MainForm:
         logout_btn.bind("<Button-1>", lambda _e: self._logout())
 
         # Pull from Cloud button
+        self.push_btn = tk.Label(
+            header, text="  ↑ Push to Cloud  ",
+            font=("Segoe UI", 9),
+            bg="#e67e22", fg=FG_HEADER,
+            cursor="hand2", padx=6, pady=2,
+        )
+        self.push_btn.pack(side=tk.RIGHT, padx=(0, 6), pady=10)
+        self.push_btn.bind("<Button-1>", lambda _e: self._on_push())
+
         self.pull_btn = tk.Label(
             header, text="  ↓ Pull from Cloud  ",
             font=("Segoe UI", 9),
@@ -349,12 +359,38 @@ class MainForm:
         self.status_var.set(message)
         if success:
             self._load_companies()
-            # Refresh the companies tab list if it has been built
             companies_frame = self._content_frames.get("companies")
             if companies_frame:
                 companies_frame.load()
         else:
             show_error(self.root, "Pull Failed", message)
+
+    # ── Push to Cloud ─────────────────────────────────────────────────────────
+
+    def _on_push(self):
+        self.push_btn.config(text="  Pushing…  ", bg="#7f8c8d")
+        self.status_var.set("Pushing changes to cloud…")
+
+        def _callback(result, exc):
+            if exc:
+                self.root.after(0, self._push_done, False, str(exc))
+            else:
+                success, message = result
+                self.root.after(0, self._push_done, success, message)
+
+        AsyncRunner.run(
+            SyncService.push_to_cloud(progress_callback=self._push_progress),
+            callback=_callback,
+        )
+
+    def _push_progress(self, message: str):
+        self.root.after(0, lambda: self.status_var.set(message))
+
+    def _push_done(self, success: bool, message: str):
+        self.push_btn.config(text="  ↑ Push to Cloud  ", bg="#e67e22")
+        self.status_var.set(message)
+        if not success:
+            show_error(self.root, "Push Failed", message)
 
     # ── Status bar ────────────────────────────────────────────────────────────
 

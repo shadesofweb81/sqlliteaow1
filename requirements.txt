@@ -4,6 +4,9 @@
 # PostgreSQL driver (cloud sync)
 psycopg2-binary==2.9.11
 
+# ORM – local SQLite (and compatible with PostgreSQL for cloud sync)
+SQLAlchemy==2.0.36
+
 # All other dependencies are Python standard library:
 #   tkinter    – GUI (bundled with CPython installers; on Linux: sudo apt install python3-tk)
 #   sqlite3    – local database

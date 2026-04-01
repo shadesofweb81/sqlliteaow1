@@ -4,10 +4,10 @@ Company list form – shows all companies linked to the logged-in user.
 
 import tkinter as tk
 from tkinter import ttk
-import traceback
-from Database.db_manager import DatabaseManager
+from Services.company_service import CompanyService
 from Services.session import Session
 from Forms.error_dialog import show_error
+from Forms.company.company_edit_form import CompanyEditForm
 
 
 COLUMNS = [
@@ -86,6 +86,9 @@ class CompanyListForm(tk.Frame):
         self.tree.tag_configure("odd",  background="#ffffff")
         self.tree.tag_configure("even", background="#eef2f7")
 
+        self.tree.bind("<Return>", self._open_edit_form)
+        self.tree.bind("<Double-1>", self._open_edit_form)
+
         self._all_rows: list[dict] = []
         self._sort_col = "name"
         self._sort_asc = True
@@ -99,26 +102,11 @@ class CompanyListForm(tk.Frame):
         self._all_rows = []
 
         try:
-            db = DatabaseManager()
             user = Session.get_user()
             if not user:
                 return
 
-            rows = db.query(
-                """
-                SELECT c.id, c.name, c.gstin, c.city, c.state,
-                       c.phone, c.email, c.currency,
-                       c.address, c.country, c.website, c.tax_id,
-                       c.bank_name, c.account_number, c.ifsc_code,
-                       COALESCE(c.is_deleted, 0) AS is_deleted
-                FROM user_company uc
-                INNER JOIN company c ON uc.company_id = c.id
-                WHERE uc.user_id = ?
-                ORDER BY c.name ASC
-                """,
-                [user.id],
-            )
-            self._all_rows = rows
+            self._all_rows = CompanyService.get_companies_for_user(user.id)
             self._apply_filter()
 
         except Exception as exc:
@@ -184,3 +172,16 @@ class CompanyListForm(tk.Frame):
             self._sort_col = col
             self._sort_asc = True
         self._apply_filter()
+
+    # ── Edit ─────────────────────────────────────────────────────────────────
+
+    def _open_edit_form(self, _event=None):
+        selected = self.tree.selection()
+        if not selected:
+            return
+        company_id = selected[0]  # iid == company UUID
+        CompanyEditForm(
+            parent=self.winfo_toplevel(),
+            company_id=company_id,
+            on_saved=lambda _: self.load(),
+        )

@@ -116,13 +116,16 @@ class LoginForm:
     def _handle_result(self, success: bool, message: str):
         self._set_loading(False)
         if success:
+            self._login_ok = True
             self.root.destroy()
-            if self.on_success:
-                self.on_success()
         else:
             self.status_var.set(message)
 
     # ── Run ───────────────────────────────────────────────────────────────────
 
     def run(self):
+        self._login_ok = False
         self.root.mainloop()
+        # Call on_success AFTER mainloop exits to avoid nested Tk/mainloop issues
+        if self._login_ok and self.on_success:
+            self.on_success()

@@ -5,7 +5,7 @@ After selection the company's data is pulled from the cloud.
 
 import tkinter as tk
 from tkinter import ttk
-from Database.db_manager import DatabaseManager
+from Services.company_service import CompanyService
 from Services.session import Session
 from Forms.error_dialog import show_error
 
@@ -98,18 +98,11 @@ class SelectCompanyForm:
         self._cards.clear()
 
         try:
-            db = DatabaseManager()
             user = Session.get_user()
             if not user:
                 return
 
-            self._companies = db.query(
-                'SELECT c.id, c.name, c.city, c.state, c.gstin, c.email '
-                'FROM user_company uc '
-                'INNER JOIN company c ON uc.company_id = c.id '
-                'WHERE uc.user_id = ?',
-                [user.id],
-            )
+            self._companies = CompanyService.get_companies_for_user(user.id)
         except Exception as exc:
             show_error(self.root, "Load Error", "Failed to load companies.", exc)
             return
@@ -210,10 +203,8 @@ class SelectCompanyForm:
             return
 
         Session.set_selected_company(company)
+        self._confirmed_company = company
         self.root.destroy()
-
-        if self._on_select:
-            self._on_select(company)
 
     def _on_close(self):
         from Services.async_runner import AsyncRunner
@@ -221,4 +212,8 @@ class SelectCompanyForm:
         self.root.destroy()
 
     def run(self):
+        self._confirmed_company = None
         self.root.mainloop()
+        # Call on_select AFTER mainloop exits to avoid nested Tk/mainloop issues
+        if self._confirmed_company is not None and self._on_select:
+            self._on_select(self._confirmed_company)
