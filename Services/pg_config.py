@@ -5,6 +5,7 @@ Maps between cloud PG (PascalCase EF Core) and local SQLite (snake_case).
 
 import re
 import decimal
+import uuid
 
 # ── Cloud PostgreSQL Connection ──────────────────────────────────────────────
 
@@ -66,6 +67,18 @@ def pascal_to_snake(name: str) -> str:
 
 def snake_to_pascal(name: str) -> str:
     """Convert snake_case to PascalCase."""
+    # Abbreviation-style column names that don't round-trip through
+    # pascal_to_snake → snake_to_pascal.  Keys are the snake_case form
+    # produced by pascal_to_snake; values are the original PG column names.
+    _OVERRIDES = {
+        "gstin": "GSTIN",
+        "ifsc_code": "IFSCCode",
+        "hsn_code": "HSNCode",
+        "sku": "SKU",
+    }
+    override = _OVERRIDES.get(name)
+    if override:
+        return override
     return "".join(part.capitalize() for part in name.split("_"))
 
 
@@ -80,5 +93,8 @@ def convert_pg_row_to_local(pg_columns: list[str], row: tuple) -> dict:
         # Convert Decimal to float (SQLite doesn't support decimal.Decimal)
         elif isinstance(val, decimal.Decimal):
             val = float(val)
+        # Convert UUID to string (SQLite doesn't support uuid.UUID)
+        elif isinstance(val, uuid.UUID):
+            val = str(val)
         result[local_col] = val
     return result
